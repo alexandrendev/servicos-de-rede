@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de README.md</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown-dark.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #0d1117;
+            color: #c9d1d9;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #58a6ff;
+        }
+        .markdown-body {
+            background-color: #161b22;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+        }
+        .loading {
+            text-align: center;
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>README.md - Serviços de Rede</h1>
+        </header>
+        <div id="content" class="markdown-body">
+            <p class="loading">Carregando conteúdo do GitHub...</p>
+        </div>
+    </div>
+
+    <script>
+        const GITHUB_RAW_URL = "https://raw.githubusercontent.com/alexandrendev/servicos-de-rede/main/README.md";
+
+        async function renderMarkdown() {
+            try {
+                const response = await fetch(GITHUB_RAW_URL);
+                const markdown = await response.text();
+                
+                const contentDiv = document.getElementById('content');
+                contentDiv.innerHTML = marked.parse(markdown);
+            } catch (error) {
+                document.getElementById('content').innerHTML = `
+                    <p style="color: #f85149;">Erro ao carregar o README.md. <a href="${GITHUB_RAW_URL}" target="_blank">Clique aqui</a> para ver diretamente no GitHub.</p>
+                `;
+            }
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+        script.onload = renderMarkdown;
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>

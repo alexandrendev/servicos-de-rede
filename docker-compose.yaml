@@ -1,0 +1,29 @@
+services:
+
+  # firewall:
+
+  nginx:
+    image: nginx:alpine
+    networks:
+      - server_network
+      - client_network ## Apenas para teste, por enquanto. Depois teremos que configurar um container para rotear a requisição do client para o server
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf 
+      - ./nginx/html:/usr/share/nginx/html
+
+
+  client:
+    image: alpine
+    networks:
+      - client_network
+    command: sh -c "apk add curl && curl http://nginx:80"
+
+
+
+networks:
+  server_network:
+    driver: bridge
+  client_network:
+    driver: bridge
