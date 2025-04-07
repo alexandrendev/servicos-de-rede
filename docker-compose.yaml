@@ -11,15 +11,14 @@ services:
       - "8080:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf 
-      - ./nginx/html:/usr/share/nginx/html
+      - ./nginx/html/:/usr/share/nginx/html/
 
 
   client:
     image: alpine
     networks:
       - client_network
-    command: sh -c "apk add curl && curl http://nginx:80"
-
+    command: sh -c "apk add curl && curl -H app1.com http://nginx:80"
 
 
 networks:
