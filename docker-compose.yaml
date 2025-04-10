@@ -1,6 +1,8 @@
+
 services:
 
-  # firewall:
+  #firewall
+
   dns: 
     image: ubuntu/bind9
     networks:
@@ -13,20 +15,32 @@ services:
     image: nginx:alpine
     networks:
       - server_network
-      - client_network ## Apenas para teste, por enquanto. Depois teremos que configurar um container para rotear a requisição do client para o server
+      - client_network
     ports:
       - "8080:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf 
       - ./nginx/html/:/usr/share/nginx/html/
 
-
   client:
     image: alpine
     networks:
       - client_network
-    command: sh -c "apk add curl && curl -H app1.com http://nginx:80"
+    command: |
+      sh -c "apk add curl --no-cache && curl -H 'Host: app1.com' http://nginx:80"
 
+  dhcp:
+    image: networkboot/dhcpd
+    container_name: dhcp-server
+    networks:
+      - client_network
+    privileged: true
+    volumes:
+      - ./dhcpd.conf:/data/dhcpd.conf:ro
+      - ./leases:/data
+    environment:
+      - INTERFACES=eth0
+    restart: unless-stopped
 
 networks:
   server_network:
