@@ -22,6 +22,25 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf 
       - ./nginx/html/:/usr/share/nginx/html/
 
+
+
+  # docker exec -it <container_id> ldapsearch -x -H ldap://localhost:1389 -D "cn=admin,dc=example,dc=org" -w adminpassword -b "dc=example,dc=org"
+  openldap:
+    image: bitnami/openldap:2
+    ports:
+      - '1389:1389'
+      - '1636:1636'
+    environment:
+      - LDAP_ADMIN_USERNAME=admin
+      - LDAP_ADMIN_PASSWORD=adminpassword
+      - LDAP_USERS=user01,user02
+      - LDAP_PASSWORDS=password1,password2
+    networks:
+      - client_network
+      - server_network
+    volumes:
+      - 'openldap_data:/bitnami/openldap'
+
   client:
     image: alpine
     networks:
@@ -29,21 +48,25 @@ services:
     command: |
       sh -c "apk add curl --no-cache && curl -H 'Host: app1.com' http://nginx:80"
 
-  dhcp:
-    image: networkboot/dhcpd
-    container_name: dhcp-server
-    networks:
-      - client_network
-    privileged: true
-    volumes:
-      - ./dhcpd.conf:/data/dhcpd.conf:ro
-      - ./leases:/data
-    environment:
-      - INTERFACES=eth0
-    restart: unless-stopped
+  # dhcp:
+  #   image: networkboot/dhcpd
+  #   container_name: dhcp-server
+  #   networks:
+  #     - client_network
+  #   privileged: true
+  #   volumes:
+  #     - ./dhcpd.conf:/data/dhcpd.conf:ro
+  #     - ./leases:/data
+  #   environment:
+  #     - INTERFACES=eth0
+  #   restart: unless-stopped
 
 networks:
   server_network:
     driver: bridge
   client_network:
     driver: bridge
+
+volumes:
+  openldap_data:
+    driver: local
