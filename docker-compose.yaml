@@ -26,27 +26,31 @@ services:
 
   # docker exec -it <container_id> ldapsearch -x -H ldap://localhost:1389 -D "cn=admin,dc=example,dc=org" -w adminpassword -b "dc=example,dc=org"
   openldap:
-    image: bitnami/openldap:2
-    ports:
-      - '1389:1389'
-      - '1636:1636'
-    environment:
-      - LDAP_ADMIN_USERNAME=admin
-      - LDAP_ADMIN_PASSWORD=adminpassword
-      - LDAP_USERS=user01,user02
-      - LDAP_PASSWORDS=password1,password2
-    networks:
-      - client_network
-      - server_network
+    image: bitnami/openldap:latest
+    container_name: openldap
+    hostname: openldap
+    ports: 
+      - "389:389"
+      - "636:636"
     volumes:
-      - 'openldap_data:/bitnami/openldap'
-
-  client:
-    image: alpine
+      - ./data/certificates:/container/service/slapd/assets/certs
+      - ./data/slapd/database:/var/lib/ldap
+      - ./data/slapd/config:/etc/ldap/slapd.d
+    environment: 
+      - LDAP_ORGANISATION=ramhlocal
+      - LDAP_DOMAIN=ramhlocal.com
+      - LDAP_ADMIN_USERNAME=admin
+      - LDAP_ADMIN_PASSWORD=admin_pass
+      - LDAP_CONFIG_PASSWORD=config_pass
+      - "LDAP_BASE_DN=dc=ramhlocal,dc=com"
+      - LDAP_TLS_CRT_FILENAME=server.crt
+      - LDAP_TLS_KEY_FILENAME=server.key
+      - LDAP_TLS_CA_CRT_FILENAME=ramhlocal.com.ca.crt
+      - LDAP_READONLY_USER=true
+      - LDAP_READONLY_USER_USERNAME=user-ro
+      - LDAP_READONLY_USER_PASSWORD=ro_pass
     networks:
-      - client_network
-    command: |
-      sh -c "apk add curl --no-cache && curl -H 'Host: app1.com' http://nginx:80"
+      - server_network
 
   # dhcp:
   #   image: networkboot/dhcpd
