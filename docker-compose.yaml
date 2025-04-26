@@ -66,21 +66,21 @@ services:
   #   restart: unless-stopped
   
  # proftpd:
- # image: stilliard/pure-ftpd:hardened
- # container_name: proftpd_test
- # ports:
- #   - "21:21"
- #   - "30000-30009:30000-30009"
- # environment:
- #   - PUBLICHOST=localhost
- #   - FTP_USER_NAME=ftpuser
- #   - FTP_USER_PASS=ftppassword
- #   - FTP_USER_HOME=/home/ftpusers/ftpuser
- # volumes:
- #   - ./ftp_data:/home/ftpusers/ftpuser
- # networks:
- #   - server_network
-
+ #     image: stilliard/pure-ftpd:hardened
+ #     container_name: proftpd_test
+ #     ports:
+ #       - "21:21"
+ #       - "30000-30009:30000-30009"
+ #     environment:
+ #       - PUBLICHOST=localhost
+ #       - FTP_USER_NAME=anonymous
+ #       - FTP_USER_PASS=
+ #       - FTP_USER_HOME=/home/ftpusers/ftpuser
+ #     volumes:
+ #       - ./ftp_data:/home/ftpusers/ftpuser
+ #     networks:
+ #       - server_network
+        
 networks:
   server_network:
     driver: bridge
