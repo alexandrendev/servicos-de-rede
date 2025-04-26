@@ -64,6 +64,27 @@ services:
   #   environment:
   #     - INTERFACES=eth0
   #   restart: unless-stopped
+  
+  proftpd:
+    image: stilliard/pure-ftpd:hardened
+    container_name: proftpd_test
+    ports:
+      - "21:21"
+      - "30000-30009:30000-30009"  # conexões passivas
+    environment:
+      - PUBLICHOST=localhost
+      - FTP_USER_NAME=ftpuser
+      - FTP_USER_PASS=ftppassword
+      - FTP_USER_HOME=/home/ftpusers/ftpuser
+    volumes:
+      - ./ftp_data:/home/ftpusers/ftpuser
+    networks:
+      - ftp_network
+
+networks:
+  ftp_network:
+    driver: bridge
+
 
 networks:
   server_network:
