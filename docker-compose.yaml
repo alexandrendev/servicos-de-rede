@@ -65,7 +65,7 @@ services:
   #     - INTERFACES=eth0
   #   restart: unless-stopped
   
-proftpd:
+  proftpd:
       image: stilliard/pure-ftpd:hardened
       container_name: proftpd_test
       ports:
@@ -77,10 +77,29 @@ proftpd:
         - FTP_USER_PASS=anonymous
         - FTP_USER_HOME=/home/ftpusers/ftpuser
       volumes:
-        - ./ftp_data:/home/ftpusers/ftpuser
+        - ./ftp_data:/home/ftpusers/ftpuser 
       networks:
         - server_network
         
+  samba:
+    image: dperson/samba
+    container_name: samba_server
+    networks:
+      - server_network
+    ports:
+      - "139:139"     
+      - "445:445"     
+    environment:
+      - USERID=1000 
+      - GROUPID=1000
+    command: >
+      -u "admin;admin" 
+      -s "public;/mount;yes;no;no;all" 
+    volumes:
+      - ./samba_data:/mount
+      - ./publico:/samba/publico
+      - ./privaddo:/samba/privado
+
 networks:
   server_network:
     driver: bridge
