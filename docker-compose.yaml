@@ -10,6 +10,9 @@ services:
     volumes:
       - ./DNS/named.conf.local:/etc/bind/named.conf.local
       - ./DNS/named.conf.options:/etc/bind/named.conf.options
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
 
   nginx:
     image: nginx:alpine
@@ -105,6 +108,7 @@ networks:
     driver: bridge
   client_network:
     driver: bridge
+  
 
 volumes:
   openldap_data:
