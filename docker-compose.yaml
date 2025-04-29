@@ -83,12 +83,14 @@ services:
     image: networkboot/dhcpd
     container_name: dhcp-server
     privileged: true
-    network_mode: "host"
+    network_mode: host
     volumes:
       - ./DHCP/dhcpd.conf:/data/dhcpd.conf
-      - ./leases:/var/lib/dhcp
+      - ./DHCP/dhcp.leases:/data/dhcpd.leases
     environment:
-      - INTERFACES=eth0
+      - INTERFACE=enp5s0  # Confirme com 'ip a' no host
+      - RANGE=192.168.1.100,192.168.1.200
+      - ROUTERS=192.168.1.1
     restart: unless-stopped
 
   proftpd:
