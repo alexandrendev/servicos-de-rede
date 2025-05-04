@@ -92,7 +92,6 @@ services:
     stdin_open: true
     tty: true
 
-
   proftpd:
     image: stilliard/pure-ftpd:hardened
     container_name: proftpd_test
