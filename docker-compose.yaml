@@ -24,15 +24,14 @@ services:
       client_network:
         ipv4_address: 172.51.0.10
 
-  dns: 
-    image: ubuntu/bind9
-    container_name: dns_server
+  dns:
+    image: andyshinn/dnsmasq:2.78
+    container_name: dns
+    command: --no-daemon
     networks:
-      server_network:
-        ipv4_address: 172.50.0.11
-    volumes:
-      - ./DNS/named.conf.local:/etc/bind/named.conf.local
-      - ./DNS/named.conf.options:/etc/bind/named.conf.options
+      client_network:
+        ipv4_address: 172.51.0.11
+
     ports:
       - "53:53/udp"
       - "53:53/tcp"
@@ -46,7 +45,7 @@ services:
       client_network:
         ipv4_address: 172.51.0.12
     ports:
-      - "8080:80"
+      - "8081:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/html/:/usr/share/nginx/html/
@@ -79,17 +78,20 @@ services:
       server_network:
         ipv4_address: 172.50.0.13
 
-  dhcp:
-    image: networkboot/dhcpd
-    container_name: dhcp-server
-    privileged: true
-    network_mode: "host"
+  dhcpd:
+    image: pnnlmiscscripts/dhcpd
+    container_name: dhcpd-server
+    network_mode: host
     volumes:
-      - ./DHCP/dhcpd.conf:/data/dhcpd.conf
-      - ./leases:/var/lib/dhcp
+      - ./DHCP/dhcpd.conf:/etc/dhcp/dhcpd.conf
+      - ./DHCP/dhcpd.leases:/var/lib/dhcp/dhcpd.leases
+    cap_add:
+      - NET_ADMIN
     environment:
-      - INTERFACES=eth0
-    restart: unless-stopped
+      - INTERFACES=enp5s0
+    stdin_open: true
+    tty: true
+
 
   proftpd:
     image: stilliard/pure-ftpd:hardened
