@@ -82,80 +82,67 @@ O firewall pode ser configurado como uma máquina virtual ou container Docker at
 
 
 # Serviços
+![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
+![Network](https://img.shields.io/badge/Network-Professional-blue)
 
-# 1. **DNS (BIND9)**
-- **Imagem**: `ubuntu/bind9`
-- **Portas**: Não expostas diretamente
-- **Volumes**:
-  - `./DNS/named.conf.local:/etc/bind/named.conf.local`
-  - `./DNS/named.conf.options:/etc/bind/named.conf.options`
-- **Rede**: `server_network`
-- **Função**: Servidor DNS utilizando BIND9, com arquivos de configuração locais.
+Este projeto implementa uma infraestrutura completa de serviços de rede utilizando Docker Compose, perfeito para laboratórios, ambientes de teste e aprendizado.
 
-##### O arquivo named.conf.local
+## 📦 Serviços Incluídos
 
-O arquivo `named.conf.local` é utilizado para definir as zonas do servidor DNS. Cada zona representa um domínio e deve apontar para um arquivo de configuração específico. 
+| Serviço       | Imagem Oficial                     | Portas                 | Descrição                     |
+|---------------|------------------------------------|------------------------|-------------------------------|
+| **DHCP**      | `pnnlmiscscripts/dhcpd`            | Modo host              | Servidor DHCP para rede local |
+| **DNS**       | `ubuntu/bind9`                     | 53/tcp, 53/udp         | Servidor DNS Bind9            |
+| **Firewall**  | `debian`                           | -                      | Regras iptables personalizadas|
+| **OpenLDAP**  | `bitnami/openldap`                 | 389/tcp, 636/tcp       | Servidor LDAP                 |
+| **Nginx**     | `nginx:alpine`                     | 8080/tcp               | Servidor Web                  |
+| **Samba**     | `dperson/samba`                    | 139/tcp, 445/tcp       | Compartilhamento de arquivos  |
+| **ProFTPD**   | `stilliard/pure-ftpd:hardened`     | 21/tcp + 30000-30009   | Servidor FTP                  |
 
-Exemplo de configuração:
+## 🚀 Começando
 
-```bash
-zone "exemplo.com" {
-    type master;
-    file "/etc/bind/db.exemplo.com";
-};
+### Pré-requisitos
+- Docker Engine 20.10+
+- Docker Compose 2.0+
+- Linux (recomendado para melhor compatibilidade de rede)
 
-zone "1.168.192.in-addr.arpa" {
-    type master;
-    file "/etc/bind/db.192.168.1";
-};
+### Instalação
+#### Clone o repositório:
+   ```bash
+   git clone https://github.com/alexandrendev/servicos-de-rede.git
+   cd servicos-de-rede
+   ```
+
+
+# 1. **DHCP**
+
+```yaml
+environment:
+  INTERFACES: "enp5s0" # Altere para sua interface de rede
+volumes:
+  - ./DHCP/dhcpd.conf:/etc/dhcp/dhcpd.conf
+  - ./DHCP/dhcpd.leases:/var/lib/dhcp/dhcpd.leases
 ```
+------------------
 
-### O arquivo db.exemplo.com
+# 2. **DNS **
+- **Imagem**: `andyshinn/dnsmasq:2.78`
+- **Portas**:
+- * `53/udp`
+  * `53/tcp`
+- **Função**: Servidor DNS utilizado para resolver domínios de rede.
 
-Este é o arquivo que define o mapeamento de nomes para IPs. Ele contém informações como o servidor autoritativo (SOA), os registros de nomes (A) e os servidores de nomes (NS).
+### Testando a configuração:
 
-Exemplo:
-
+- Teste de resolução:
 ```bash
-$TTL    604800
-@       IN      SOA     ns.exemplo.com. root.exemplo.com. (
-                        2         ; Serial
-                        604800    ; Refresh
-                        86400     ; Retry
-                        2419200   ; Expire
-                        604800 )  ; Negative Cache TTL
-;
-@       IN      NS      ns.exemplo.com.
-@       IN      A       192.168.1.100
-ns      IN      A       192.168.1.100
-www     IN      A       192.168.1.101
-ftp     IN      A       192.168.1.102
+nslookup example.com 127.0.0.1
+# Ou
+dig @127.0.0.1 google.com +short
 ```
-
-### O arquivo db.192.168.1
-
-Este é o arquivo que define o mapeamento de IPs para nomes (resolução reversa). 
-
-Exemplo:
-
-```bash
-$TTL    604800
-@       IN      SOA     ns.exemplo.com. root.exemplo.com. (
-                        1         ; Serial
-                        604800    ; Refresh
-                        86400     ; Retry
-                        2419200   ; Expire
-                        604800 )  ; Negative Cache TTL
-;
-@       IN      NS      ns.exemplo.com.
-100     IN      PTR     ns.exemplo.com.
-101     IN      PTR     www.exemplo.com.
-102     IN      PTR     ftp.exemplo.com.
-```
-
 ---------------------------------
 
-# 2. **Nginx**
+# 3. **Nginx**
 - **Imagem**: `nginx:alpine`
 - **Portas**: `8080:80`
 - **Volumes**:
@@ -167,54 +154,28 @@ $TTL    604800
 ### O arquivo `nginx.conf`
 
 ```nginx
-user www-data;
-worker_processes auto;
-pid /run/nginx.pid;
-include /etc/nginx/modules-enabled/*.conf;
+server {
+  listen 80;
+  server_name app1.com www.app1.com;
+  root /usr/share/nginx/html/app1;
+  index index.html;
 
-events {
-	worker_connections 768;
+
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
 }
 
-http {
-
-	sendfile on;
-	tcp_nopush on;
-	tcp_nodelay on;
-	keepalive_timeout 65;
-	types_hash_max_size 2048;
-
-	include /etc/nginx/mime.types;
-	default_type application/octet-stream;
-
-	ssl_protocols TLSv1 TLSv1.1 TLSv1.2; # Dropping SSLv3, ref: POODLE
-	ssl_prefer_server_ciphers on;
-
-	access_log /var/log/nginx/access.log;
-	error_log /var/log/nginx/error.log;
-
-	gzip on;
-
-
-	include /etc/nginx/conf.d/*.conf;
-	include /etc/nginx/sites-enabled/*;
-
-	server {
-    	listen       80 default_server;
-    	listen       [::]:80 default_server;
-    	server_name  _;
-    	root         /usr/share/nginx/html;
-	}
-	
-	server {
-		server_name  example.com;
-		root         /var/www/example.com/;
-		access_log   /var/log/nginx/access.log;
-		error_log    /var/log/nginx/error.log;
-	}
-
+server {
+  listen 80;
+  server_name app2.com www.app2.com;
+  root /usr/share/nginx/html/app2;
+  index index.html;
+  
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
 }
-
 ```
 
 ### Explicando algumas diretivas
@@ -227,7 +188,7 @@ Aqui o bloco onde realizamos as configurações é o bloco `http`, onde colocamo
 - `access_log && error_log`: Definem os diretórios onde o servidor registrará arquivos de log.
 ------------------------
 
-## 3. **OpenLDAP**
+## 4. **OpenLDAP**
 
 - **Imagem**: `bitnami/openldap:latest`
 - **Container Name**: `openldap`
@@ -260,8 +221,26 @@ Aqui o bloco onde realizamos as configurações é o bloco `http`, onde colocamo
 
 - **Função**: Servidor LDAP utilizado para autenticação centralizada, controle de acesso e gerenciamento de diretórios. Suporta conexões seguras através de TLS (LDAPS).
 
+## Testando o servidor LDAP:
 
-### 4. **ProFTPD**
+#### Verificando conexão básica:
+  * ```bash
+    ldapsearch -x -H ldap://localhost -b "dc=ramhlocal,dc=com" -D "cn=admin,dc=ramhlocal,dc=com" -w admin_pass
+    ```
+#### Testando a autenticação:
+ * ```bash
+   ldapwhoami -x -H ldap://localhost -D "cn=admin,dc=ramhlocal,dc=com" -w admin_pass
+   ```
+
+#### Verificando TLS:
+ * ```bash
+   openssl s_client -connect localhost:636 -showcerts
+   ```
+
+-----------------------
+
+
+### 5. **ProFTPD**
 - **Imagem**: `stilliard/pure-ftpd:hardened`
 - **Container Name**: `proftpd_test`
 - **Portas**: 
@@ -277,107 +256,9 @@ Aqui o bloco onde realizamos as configurações é o bloco `http`, onde colocamo
 - **Rede**: `server_network`
 - **Função**: Servidor FTP com acesso anônimo e diretório compartilhado para arquivos.
 
-### O arquivo `nginx.conf`
-
-```xml
-Include /etc/proftpd/modules.conf
-
-
-UseIPv6 off
-
-<IfModule mod_ident.c>
-  IdentLookups off
-</IfModule>
-
-ServerName "FTP Server"
-ServerType standalone
-DeferWelcome off
-
-DefaultServer on
-ShowSymlinks on
-
-TimeoutNoTransfer 600
-TimeoutStalled 600
-TimeoutIdle 1200
-
-DisplayLogin welcome.msg
-DisplayChdir .message true
-ListOptions "-l"
-
-DenyFilter \*.*/
-
-DefaultRoot ~
-
-
-RequireValidShell off
-
-Port 21
-
-
-<IfModule mod_dynmasq.c>
-</IfModule>
-
-MaxInstances 30
-
-User proftpd
-Group nogroup
-
-Umask 022 022
-
-AllowOverwrite on
-
-TransferLog /var/log/proftpd/xferlog
-SystemLog /var/log/proftpd/proftpd.log
-
-<IfModule mod_quotatab.c>
-QuotaEngine off
-</IfModule>
-
-<IfModule mod_ratio.c>
-Ratios off
-</IfModule>
-
-<IfModule mod_delay.c>
-DelayEngine on
-</IfModule>
-
-<IfModule mod_ctrls.c>
-ControlsEngine off
-ControlsMaxClients 2
-ControlsLog /var/log/proftpd/controls.log
-ControlsInterval 5
-ControlsSocket /var/run/proftpd/proftpd.sock
-</IfModule>
-
-<IfModule mod_ctrls_admin.c>
-AdminControlsEngine off
-</IfModule>
-
- <Anonymous ~ftp>
-   User ftp
-   Group nogroup
-
-   UserAlias anonymous ftp
-
-   RequireValidShell off
-
-   MaxClients 10
-
-   DisplayLogin welcome.msg
-   DisplayChdir .message
-   <Directory ~/share>
-     <Limit READ WRITE>
-       AllowAll
-     </Limit>
-   </Directory>
- </Anonymous>
-
-Include /etc/proftpd/conf.d/
-```
-
 ---------------------------------------
 
-# 5. **Samba**
+# 6. **Samba**
 - **Imagem**: `dperson/samba`
 - **Container Name**: `samba_server`
 - **Portas**:
@@ -464,6 +345,42 @@ guest ok = yes
 - **`force group`**: Define o grupo para arquivos criados. Exemplo: `users`.
 
 --------------------------------
+
+# 6. **Firewall**
+
+Filtro de tráfego entre redes e proteção dos serviços
+
+#### Regras:
+```bash
+command: >
+  bash -c "
+    iptables -F &&
+    iptables -P INPUT DROP &&  # Bloqueia tudo por padrão
+    iptables -P FORWARD DROP &&
+    iptables -P OUTPUT ACCEPT &&
+    iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT &&  # Permite conexões já estabelecidas
+    iptables -A INPUT -p tcp --dport 22 -j ACCEPT &&   # SSH
+    iptables -A INPUT -p tcp --dport 80 -j ACCEPT &&   # HTTP
+    iptables -A INPUT -p tcp --dport 443 -j ACCEPT &&  # HTTPS
+    iptables -A INPUT -p tcp --dport 389 -j ACCEPT"    # LDAP
+
+```
+
+### Testando o Firewall:
+#### Testar portas abertas:
+
+```bash
+nc -zv 172.50.0.10 22  # SSH
+nc -zv 172.50.0.10 80  # HTTP
+```
+
+#### Testar bloqueios:
+
+```bash
+nc -zv 172.50.0.10 3306  # Deve falhar (não permitido)
+```
+
+
 
 ## Redes
 
