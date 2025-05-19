@@ -50,30 +50,19 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/html/:/usr/share/nginx/html/
 
-  openldap:
-    image: bitnami/openldap:latest
+  ldap:
+    image: osixia/openldap:1.5.0
     container_name: openldap
-    hostname: openldap
-    ports: 
+    environment:
+      - LDAP_ORGANISATION=MinhaEmpresa
+      - LDAP_DOMAIN=empresa.local
+      - LDAP_ADMIN_PASSWORD=admin
+    ports:
       - "389:389"
       - "636:636"
     volumes:
-      - ./data/certificates:/container/service/slapd/assets/certs
-      - ./data/slapd/database:/var/lib/ldap
-      - ./data/slapd/config:/etc/ldap/slapd.d
-    environment: 
-      - LDAP_ORGANISATION=ramhlocal
-      - LDAP_DOMAIN=ramhlocal.com
-      - LDAP_ADMIN_USERNAME=admin
-      - LDAP_ADMIN_PASSWORD=admin_pass
-      - LDAP_CONFIG_PASSWORD=config_pass
-      - LDAP_BASE_DN=dc=ramhlocal,dc=com
-      - LDAP_TLS_CRT_FILENAME=server.crt
-      - LDAP_TLS_KEY_FILENAME=server.key
-      - LDAP_TLS_CA_CRT_FILENAME=ramhlocal.com.ca.crt
-      - LDAP_READONLY_USER=true
-      - LDAP_READONLY_USER_USERNAME=user-ro
-      - LDAP_READONLY_USER_PASSWORD=ro_pass
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
     networks:
       server_network:
         ipv4_address: 172.50.0.13
@@ -142,5 +131,5 @@ networks:
         - subnet: 172.51.0.0/24
 
 volumes:
-  openldap_data:
-    driver: local
+  ldap_data:
+  ldap_config:
